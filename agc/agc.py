@@ -125,7 +125,13 @@ def get_identity(alignment_list: List[str]) -> float:
     :param alignment_list:  (list) A list of aligned sequences in the format ["SE-QUENCE1", "SE-QUENCE2"]
     :return: (float) The rate of identity between the two sequences.
     """
-    pass
+    sequence1, sequence2 = alignment_list
+    identical = 0
+    for base1, base2 in zip(sequence1, sequence2):
+        if base1 == base2:
+            identical += 1
+    return identical / len(sequence1) * 100
+
 
 def abundance_greedy_clustering(amplicon_file: Path, minseqlen: int, mincount: int, chunk_size: int, kmer_size: int) -> List:
     """Compute an abundance greedy clustering regarding sequence count and identity.
@@ -138,7 +144,23 @@ def abundance_greedy_clustering(amplicon_file: Path, minseqlen: int, mincount: i
     :param kmer_size: (int) A fournir mais non utilise cette annee
     :return: (list) A list of all the [OTU (str), count (int)] .
     """
-    pass
+    otu_list = []
+    for sequence, count in dereplication_fulllength(
+        amplicon_file, minseqlen, mincount
+    ):
+        similar = False
+        for otu_sequence, otu_count in otu_list:
+            alignment = nw.global_align(
+                sequence, otu_sequence, gap_open=-1, gap_extend=-1,
+                matrix=str(Path(__file__).parent / "MATCH")
+            )
+            if get_identity(alignment) > 97:
+                similar = True
+                break
+        if not similar:
+            otu_list.append([sequence, count])
+    return otu_list
+
 
 
 def write_OTU(OTU_list: List, output_file: Path) -> None:
