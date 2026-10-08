@@ -26,13 +26,13 @@ from typing import Iterator, Dict, List
 # ftp://ftp.ncbi.nih.gov/blast/matrices/
 import nwalign3 as nw
 
-__author__ = "Your Name"
+__author__ = "Elif Maya Gungor"
 __copyright__ = "Universite Paris Diderot"
-__credits__ = ["Your Name"]
+__credits__ = ["Elif Maya Gungor"]
 __license__ = "GPL"
 __version__ = "1.0.0"
-__maintainer__ = "Your Name"
-__email__ = "your@email.fr"
+__maintainer__ = "Elif Maya Gungor"
+__email__ = "mayagungor05@gmail.com"
 __status__ = "Developpement"
 
 
@@ -83,7 +83,19 @@ def read_fasta(amplicon_file: Path, minseqlen: int) -> Iterator[str]:
     :param minseqlen: (int) Minimum amplicon sequence length
     :return: A generator object that provides the Fasta sequences (str).
     """
-    pass
+    sequence = ""
+    with gzip.open(amplicon_file, "rt") as fasta:
+        for line in fasta:
+            line = line.strip()
+            if line.startswith(">"):
+                if sequence and len(sequence) >= minseqlen:
+                    yield sequence
+                sequence = ""
+            else:
+                sequence += line
+        # La derniere sequence n'est pas suivie d'un nouveau titre.
+        if sequence and len(sequence) >= minseqlen:
+            yield sequence
 
 
 def dereplication_fulllength(amplicon_file: Path, minseqlen: int, mincount: int) -> Iterator[List]:
@@ -94,7 +106,18 @@ def dereplication_fulllength(amplicon_file: Path, minseqlen: int, mincount: int)
     :param mincount: (int) Minimum amplicon count
     :return: A generator object that provides a (list)[sequences, count] of sequence with a count >= mincount and a length >= minseqlen.
     """
-    pass
+    counts = {}
+    for sequence in read_fasta(amplicon_file, minseqlen):
+        if sequence in counts:
+            counts[sequence] += 1
+        else:
+            counts[sequence] = 1
+
+    sorted_sequences = sorted(counts, key=counts.get, reverse=True)
+    for sequence in sorted_sequences:
+        count = counts[sequence]
+        if count >= mincount:
+            yield [sequence, count]
 
 def get_identity(alignment_list: List[str]) -> float:
     """Compute the identity rate between two sequences
